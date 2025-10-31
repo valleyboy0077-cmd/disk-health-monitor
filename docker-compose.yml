@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  disk-health-monitor:
+    build: .
+    container_name: disk-health-monitor
+    ports:
+      - "30969:30969"
+    volumes:
+      # Mount host disks for monitoring (read-only)
+      - /dev:/dev:ro
+      # Persistent data storage
+      - ./data:/app/data
+    devices:
+      # Grant access to disk devices
+      - /dev/sda
+      - /dev/sdb
+      # Add more devices as needed
+    privileged: true  # Required for HD Sentinel to access disk information
+    restart: unless-stopped
+    environment:
+      - TZ=Australia/Brisbane  # Set your timezone
