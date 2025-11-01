@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disk Health Monitor</title>
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .nav-tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .nav-tab:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Content Area */
+        .content {
+            padding: 30px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Disk List Styles */
+        .disk-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .disk-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 300px 1fr 150px;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .disk-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .disk-info-line {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .disk-info-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .health-bar-container {
+            flex: 1;
+        }
+
+        .health-bar-wrapper {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .health-bar {
+            height: 100%;
+            transition: width 0.5s, background-color 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .health-bar.green {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .health-bar.orange {
+            background: linear-gradient(90deg, #f2994a 0%, #f2c94c 100%);
+        }
+
+        .health-bar.red {
+            background: linear-gradient(90deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .temp-display {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 5px;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .temp-display.critical {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Settings Form Styles */
+        .settings-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .settings-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .disk-threshold-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .disk-threshold-header {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        select.form-input {
+            cursor: pointer;
+        }
+
+        .notification-config {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-success {
+            background: #38ef7d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #eb3349;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #ddd;
+            color: #333;
+        }
+
+        .available-disk-item {
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .available-disk-item:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .available-disk-item.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🖴 Disk Health Monitor</h1>
+            <div class="header-buttons">
+                <button class="btn btn-secondary" onclick="refreshDisks()">🔄 Refresh</button>
+                <button class="btn btn-primary" onclick="openAddDiskModal()">➕ Add Disk</button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="nav-tab" onclick="switchTab('settings')">Settings</button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <div id="disk-list" class="disk-list">
+                    <!-- Disks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <!-- Disk Thresholds Section -->
+                <div class="settings-section">
+                    <h3>⚠️ Disk Health Thresholds</h3>
+                    <div id="disk-thresholds">
+                        <!-- Disk thresholds will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Temperature Thresholds Section -->
+                <div class="settings-section">
+                    <h3>🌡️ Temperature Thresholds</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Warning Threshold (°C)</label>
+                            <input type="number" id="temp-warning" class="form-input" value="48">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Critical Threshold (°C)</label>
+                            <input type="number" id="temp-critical" class="form-input" value="60">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div class="settings-section">
+                    <h3>🔔 Notifications</h3>
+                    <div class="form-group">
+                        <label class="form-label">Notification Type</label>
+                        <select id="notification-type" class="form-input" onchange="toggleNotificationConfig()">
+                            <option value="none">None</option>
+                            <option value="webhook">Webhook</option>
+                            <option value="pushover">Pushover</option>
+                        </select>
+                    </div>
+
+                    <!-- Webhook Config -->
+                    <div id="webhook-config" class="notification-config hidden">
+                        <div class="form-group">
+                            <label class="form-label">Webhook URL</label>
+                            <input type="text" id="webhook-url" class="form-input" placeholder="https://your-webhook-url.com">
+                        </div>
+                    </div>
+
+                    <!-- Pushover Config -->
+                    <div id="pushover-config" class="notification-config hidden">
+                        <div class="form-group">
+                            <label class="form-label">API Token</label>
+                            <input type="text" id="pushover-api-token" class="form-input" placeholder="Your Pushover API Token">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">User Key</label>
+                            <input type="text" id="pushover-user-key" class="form-input" placeholder="Your Pushover User Key">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" onclick="saveSettings()">💾 Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Disk Modal -->
+    <div id="add-disk-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Add Disk to Monitor</div>
+            <div class="form-group">
+                <label class="form-label">Disk Path</label>
+                <input type="text" id="new-disk-path" class="form-input" placeholder="/dev/sda">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Or select from available disks:</label>
+                <div id="available-disks-list">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeAddDiskModal()">Cancel</button>
+                <button class="btn btn-success" onclick="addDisk()">Add Disk</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global state
+        let currentConfig = null;
+        let currentDisks = null;
+        let selectedDiskPath = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            loadSettings();
+        });
+
+        // Switch between tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            // Reload data when switching to tabs
+            if (tabName === 'dashboard') {
+                loadDashboard();
+            } else if (tabName === 'settings') {
+                loadSettings();
+            }
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/disks');
+                const data = await response.json();
+
+                currentDisks = data.disks;
+                currentConfig = data.config;
+
+                renderDiskList();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Render disk list
+        function renderDiskList() {
+            const diskList = document.getElementById('disk-list');
+
+            if (!currentDisks || Object.keys(currentDisks).length === 0) {
+                diskList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💿</div>
+                        <div class="empty-state-text">No disks are being monitored</div>
+                        <button class="btn btn-primary" onclick="openAddDiskModal()">Add Your First Disk</button>
+                    </div>
+                `;
+                return;
+            }
+
+            diskList.innerHTML = '';
+
+            for (const [diskPath, diskInfo] of Object.entries(currentDisks)) {
+                const thresholds = currentConfig.disk_thresholds[diskPath] || { warning: 90, critical: 75 };
+                const healthPercent = diskInfo.health_percent;
+                const temp = diskInfo.temperature;
+
+                // Determine health bar color
+                let healthColor = 'green';
+                if (healthPercent <= thresholds.critical) {
+                    healthColor = 'red';
+                } else if (healthPercent <= thresholds.warning) {
+                    healthColor = 'orange';
+                }
+
+                // Determine temp color
+                const tempCritical = temp >= currentConfig.temp_critical;
+
+                const diskCard = document.createElement('div');
+                diskCard.className = 'disk-card';
+                diskCard.innerHTML = `
+                    <div class="disk-info">
+                        <div class="disk-info-line">
+                            <span class="disk-info-label">Path:</span> ${diskPath}
+                        </div>
+                        <div class="disk-info-line">
+                            <span class="disk-info-label">Manufacturer:</span> ${diskInfo.manufacturer} | 
+                            <span class="disk-info-label">Model:</span> ${diskInfo.model}
+                        </div>
+                        <div class="disk-info-line">
+                            <span class="disk-info-label">Serial:</span> ${diskInfo.serial} | 
+                            <span class="disk-info-label">Size:</span> ${diskInfo.size} | 
+                            <span class="disk-info-label">Type:</span> ${diskInfo.disk_type}
+                        </div>
+                        <button class="btn btn-danger" style="margin-top: 10px; padding: 5px 10px; font-size: 12px;" onclick="removeDisk('${diskPath}')">Remove</button>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-wrapper">
+                            <div class="health-bar ${healthColor}" style="width: ${healthPercent}%">
+                                ${healthPercent}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="temp-display ${tempCritical ? 'critical' : ''}">
+                        ${temp}°C
+                    </div>
+                `;
+
+                diskList.appendChild(diskCard);
+            }
+        }
+
+        // Load settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/config');
+                currentConfig = await response.json();
+
+                // Populate form fields
+                document.getElementById('temp-warning').value = currentConfig.temp_warning;
+                document.getElementById('temp-critical').value = currentConfig.temp_critical;
+                document.getElementById('notification-type').value = currentConfig.notification_type;
+
+                // Load notification config
+                if (currentConfig.notification_type === 'webhook') {
+                    document.getElementById('webhook-url').value = currentConfig.notification_config.webhook_url || '';
+                } else if (currentConfig.notification_type === 'pushover') {
+                    document.getElementById('pushover-api-token').value = currentConfig.notification_config.api_token || '';
+                    document.getElementById('pushover-user-key').value = currentConfig.notification_config.user_key || '';
+                }
+
+                toggleNotificationConfig();
+                renderDiskThresholds();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Render disk thresholds
+        function renderDiskThresholds() {
+            const container = document.getElementById('disk-thresholds');
+
+            if (!currentConfig.disks || currentConfig.disks.length === 0) {
+                container.innerHTML = '<p style="color: #999;">No disks configured. Add disks from the dashboard.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            currentConfig.disks.forEach(diskPath => {
+                const thresholds = currentConfig.disk_thresholds[diskPath] || { warning: 90, critical: 75 };
+
+                const diskItem = document.createElement('div');
+                diskItem.className = 'disk-threshold-item';
+                diskItem.innerHTML = `
+                    <div class="disk-threshold-header">${diskPath}</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Warning Threshold (%)</label>
+                            <input type="number" class="form-input disk-warning-threshold" data-disk="${diskPath}" value="${thresholds.warning}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Critical Threshold (%)</label>
+                            <input type="number" class="form-input disk-critical-threshold" data-disk="${diskPath}" value="${thresholds.critical}">
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(diskItem);
+            });
+        }
+
+        // Toggle notification config visibility
+        function toggleNotificationConfig() {
+            const notificationType = document.getElementById('notification-type').value;
+
+            document.getElementById('webhook-config').classList.add('hidden');
+            document.getElementById('pushover-config').classList.add('hidden');
+
+            if (notificationType === 'webhook') {
+                document.getElementById('webhook-config').classList.remove('hidden');
+            } else if (notificationType === 'pushover') {
+                document.getElementById('pushover-config').classList.remove('hidden');
+            }
+        }
+
+        // Save settings
+        async function saveSettings() {
+            // Collect disk thresholds
+            const diskThresholds = {};
+            document.querySelectorAll('.disk-warning-threshold').forEach(input => {
+                const diskPath = input.dataset.disk;
+                if (!diskThresholds[diskPath]) {
+                    diskThresholds[diskPath] = {};
+                }
+                diskThresholds[diskPath].warning = parseInt(input.value);
+            });
+
+            document.querySelectorAll('.disk-critical-threshold').forEach(input => {
+                const diskPath = input.dataset.disk;
+                if (!diskThresholds[diskPath]) {
+                    diskThresholds[diskPath] = {};
+                }
+                diskThresholds[diskPath].critical = parseInt(input.value);
+            });
+
+            // Collect notification config
+            const notificationType = document.getElementById('notification-type').value;
+            let notificationConfig = {};
+
+            if (notificationType === 'webhook') {
+                notificationConfig = {
+                    webhook_url: document.getElementById('webhook-url').value
+                };
+            } else if (notificationType === 'pushover') {
+                notificationConfig = {
+                    api_token: document.getElementById('pushover-api-token').value,
+                    user_key: document.getElementById('pushover-user-key').value
+                };
+            }
+
+            // Build config object
+            const config = {
+                ...currentConfig,
+                disk_thresholds: diskThresholds,
+                temp_warning: parseInt(document.getElementById('temp-warning').value),
+                temp_critical: parseInt(document.getElementById('temp-critical').value),
+                notification_type: notificationType,
+                notification_config: notificationConfig
+            };
+
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    alert('Settings saved successfully!');
+                    currentConfig = config;
+                } else {
+                    alert('Error saving settings');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings');
+            }
+        }
+
+        // Open add disk modal
+        async function openAddDiskModal() {
+            document.getElementById('add-disk-modal').classList.add('active');
+            document.getElementById('new-disk-path').value = '';
+            selectedDiskPath = null;
+
+            // Load available disks
+            try {
+                const response = await fetch('/api/available-disks');
+                const data = await response.json();
+
+                const container = document.getElementById('available-disks-list');
+                container.innerHTML = '';
+
+                if (data.disks.length === 0) {
+                    container.innerHTML = '<p style="color: #999;">No disks detected</p>';
+                } else {
+                    data.disks.forEach(diskPath => {
+                        const diskItem = document.createElement('div');
+                        diskItem.className = 'available-disk-item';
+                        diskItem.textContent = diskPath;
+                        diskItem.onclick = () => selectDisk(diskPath, diskItem);
+                        container.appendChild(diskItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading available disks:', error);
+            }
+        }
+
+        // Close add disk modal
+        function closeAddDiskModal() {
+            document.getElementById('add-disk-modal').classList.remove('active');
+        }
+
+        // Select disk from available list
+        function selectDisk(diskPath, element) {
+            selectedDiskPath = diskPath;
+            document.getElementById('new-disk-path').value = diskPath;
+
+            // Update UI
+            document.querySelectorAll('.available-disk-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        // Add disk
+        async function addDisk() {
+            const diskPath = document.getElementById('new-disk-path').value.trim();
+
+            if (!diskPath) {
+                alert('Please enter a disk path');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/disks/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ disk_path: diskPath })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Disk added successfully!');
+                    closeAddDiskModal();
+                    loadDashboard();
+                    loadSettings();
+                } else {
+                    alert('Error adding disk: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error adding disk:', error);
+                alert('Error adding disk');
+            }
+        }
+
+        // Remove disk
+        async function removeDisk(diskPath) {
+            if (!confirm(`Are you sure you want to remove ${diskPath} from monitoring?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/disks/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ disk_path: diskPath })
+                });
+
+                if (response.ok) {
+                    alert('Disk removed successfully!');
+                    loadDashboard();
+                    loadSettings();
+                } else {
+                    alert('Error removing disk');
+                }
+            } catch (error) {
+                console.error('Error removing disk:', error);
+                alert('Error removing disk');
+            }
+        }
+
+        // Refresh disks
+        async function refreshDisks() {
+            try {
+                const response = await fetch('/api/disks/refresh', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    loadDashboard();
+                }
+            } catch (error) {
+                console.error('Error refreshing disks:', error);
+            }
+        }
+    </script>
+</body>
+</html>
